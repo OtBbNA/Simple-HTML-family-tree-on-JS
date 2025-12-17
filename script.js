@@ -78,24 +78,34 @@ function cardCreate(element, newId, position) {
       element.insertAdjacentHTML(position, newCardHTML);
 }   
 
-function cardUpdate(id, dataSpouseId, dataChildrenIds, dataParentsIds) {
+function cardUpdate(id, dataSpouseId, dataChildrenId, dataParentsId) {
     let updatedCard = findCard(id);
     let currentSpouse = cardGetSpouseId(id);
     let currentChildrens = cardGetChildsIds(id);
     let currentParents = cardGetParentsIds(id);
+    // if (Array.isArray(dataSpouseId)) {
+    //   updatedCard.dataset.spouseId = stringFromArray(dataSpouseId);
+    // } else 
     if (!currentSpouse.includes(dataSpouseId)) {
       currentSpouse[currentSpouse.length] = dataSpouseId;
+      updatedCard.dataset.spouseId = stringFromArray(currentSpouse);
     }
-    if (!currentChildrens.includes(dataChildrenIds)) {
-      currentChildrens[currentChildrens.length] = dataChildrenIds;
+    // if (Array.isArray(dataChildrenId)) {
+    //   updatedCard.dataset.childrenIds = stringFromArray(dataChildrenId);
+    // } else 
+    if (!currentChildrens.includes(dataChildrenId)) {
+      currentChildrens[currentChildrens.length] = dataChildrenId;
+      updatedCard.dataset.childrenIds = stringFromArray(currentChildrens);
     }
-    if (!currentParents.includes(dataParentsIds)) {
-      currentParents[currentParents.length] = dataParentsIds;
+    // if (Array.isArray(dataParentsId)) {
+    //   updatedCard.dataset.parentsIds = stringFromArray(dataParentsId);
+    // } else
+    if (!currentParents.includes(dataParentsId)) {
+      currentParents[currentParents.length] = dataParentsId;
+      updatedCard.dataset.parentsIds = stringFromArray(currentParents);
     }
-    updatedCard.dataset.spouseId = stringFromArray(currentSpouse);
-    updatedCard.dataset.childrenIds = stringFromArray(currentChildrens);
-    updatedCard.dataset.parentsIds = stringFromArray(currentParents);
 }
+
 
 function cardDelete() {
   
@@ -138,19 +148,22 @@ function cardGetSpouseId(id) {
 // Основная логика
 
 // Добавляем супруга
-function addSpouse(lineId, id) {
-  let currentCard = findCard(id); // находим текущую карточку (на которой нажали кнопку добавить супруга)
-  if(currentCard.getAttribute('data-spouse-id') == null || currentCard.getAttribute('data-spouse-id') == '') { // Проверяем, что у карточки нет супруга
+function addSpouse(lineId, spouseCardId) {
+  let spouseCard = findCard(spouseCardId); // находим текущую карточку (на которой нажали кнопку добавить супруга)
+  let spouseCurrentChildIds = cardGetChildsIds(spouseCardId); // считываем id детей в массив
+  let spouseCurrentSuposeIds = cardGetSpouseId(spouseCardId); // считываем id супруга в массив
+  let spouseCurrentParentIds = cardGetParentsIds(spouseCardId); // считываем id родителей в массив
+  if(spouseCard.getAttribute('data-spouse-id') == null || spouseCard.getAttribute('data-spouse-id') == '') { // Проверяем, что у карточки нет супруга
     idcount++; // увеличиваем счетчик карточек
-    currentCard.dataset.spouseId = idcount; // устанавливаем для карточки, для которой добавляют супруга, новый id
+    let newSpouseId = idcount; 
+    cardUpdate(spouseCardId, newSpouseId, '', ''); // устанавливаем для карточки, для которой добавляют супруга, новый id
     let iAHTML = 'afterend'; // временное решение (потом нужно будет проверять - есть ли справа пустое место)
-    cardCreate(currentCard, idcount, iAHTML) // Создаем пустую карточку с новым id
-    cardUpdate(idcount, id, currentCard.dataset.childrenIds, '', ''); // Апдейтим значения в новой карточке dataSpouseId, dataChildrenIds, dataParentsIds
-    spaceCreate(currentCard, iAHTML); // добавляем пробел после (между) карточками
-    // let childs = document.querySelectorAll('.line_card[data-parents-ids="1"]'); // Пока убираем, нужно сделать изменение айдишек детей
-    // childs.forEach(child => {
-    //   child.dataset.parentsIds = id + ', ' + idcount;
-    // });
+    cardCreate(spouseCard, newSpouseId, iAHTML) // Создаем пустую карточку с новым id
+    cardUpdate(newSpouseId, spouseCardId, spouseCurrentChildIds, ''); // Апдейтим значения в новой карточке dataSpouseId, dataChildrenIds, dataParentsIds
+    spaceCreate(spouseCard, iAHTML); // добавляем пробел после (между) карточками
+    childs.forEach(child => {
+      child.dataset.parentsIds = spouseCardId + ', ' + newSpouseId;
+    });
   }
 }
 
@@ -167,18 +180,20 @@ function addChild(lineId, parrentCardId) {
     lineCreate(lineId, newLineId, 'afterend'); // если нет - создаем новую
     cardCreate(findLine(newLineId), childCardId, 'afterbegin') // и добавляем в нее новую карточку
     cardUpdate(childCardId, '', '', parrentCardId) // сразу добавляем в нее id родителей
-    let spouseId = findCard(parrentCurrentSuposeIds[0]);
+    let spouseId = parrentCurrentSuposeIds[0];
     if (spouseId) {
-      cardUpdate(childCardId, '', '', parrentCurrentSuposeIds) // добавляе в нее id второго родителя 
+      cardUpdate(childCardId, '', '', spouseId); // добавляе в нее id второго родителя
       cardUpdate(spouseId, '', childCardId, ''); // добавляем второму родителю новых детей
     }
     cardUpdate(parrentCardId, '', childCardId, '');
   } else { // если есть
+    let spouseId = parrentCurrentSuposeIds[0];
     cardCreate(findCard(parrentCurrentChildIds[parrentCurrentChildIds.length - 1]), idcount, 'afterend');
-    cardUpdate(childCardId, '', '', parrentCardId + ', ' + parrentCurrentSuposeIds); // находим последнего брата/сестру в списке
-    spaceCreate(findCard(parrentCurrentChildIds.split(',').pop().trim()), 'afterend'); // и добавляем новую карточку после него
-    findCard(parrentCurrentSuposeIds).dataset.childrenIds = newValue;
-    parrentCard.dataset.childrenIds = newValue; // добавляем в атрибут родителя новое значение id-шек детей
+    cardUpdate(childCardId, '', '', parrentCardId);
+    cardUpdate(childCardId, '', '', spouseId);
+    spaceCreate(findCard(parrentCurrentChildIds[parrentCurrentChildIds.length - 1]), 'afterend'); // и добавляем новую карточку после него
+    cardUpdate(parrentCardId, '', childCardId, '');
+    cardUpdate( spouseId, '', childCardId, '');
   }
 }
 
